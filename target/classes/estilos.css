@@ -1,0 +1,37 @@
+.root {
+  -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.top-bar Button {
+  -fx-background-color: #3b82f6;
+  -fx-text-fill: white;
+  -fx-font-weight: bold;
+  -fx-background-radius: 6;
+  -fx-padding: 8 12 8 12;
+}
+
+.top-bar Button:hover {
+  -fx-background-color: #2563eb;
+}
+
+.titulo-panel {
+  -fx-font-size: 18px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #1f2937;
+}
+
+.info-area {
+  -fx-font-family: "Consolas", "Courier New", monospace;
+  -fx-font-size: 12px;
+  -fx-control-inner-background: #f9fafb;
+}
+
+.split-pane *.split-pane-divider {
+  -fx-background-color: #9ca3af;
+  -fx-padding: 2 2 2 2;
+}
+
+.scroll-pane {
+  -fx-background-color: #ffffff;
+}
+
