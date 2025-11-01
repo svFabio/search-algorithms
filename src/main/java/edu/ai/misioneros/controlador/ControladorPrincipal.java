@@ -1,7 +1,7 @@
 package edu.ai.misioneros.controlador;
 
 import edu.ai.misioneros.algoritmo.AlgoritmoAEstrella;
-import edu.ai.misioneros.algoritmo.AlgoritmoProfundidad;
+import edu.ai.misioneros.logicaVoraz.AlgoritmoVoraz;
 import edu.ai.misioneros.modelo.Nodo;
 import edu.ai.misioneros.modelo.ResultadoBusqueda;
 import edu.ai.misioneros.vista.PanelArbol;
@@ -27,8 +27,10 @@ public class ControladorPrincipal {
     private final PanelArbol panelArbolDFS = new PanelArbol();
     private final PanelArbol panelArbolAStar = new PanelArbol();
 
-    private final Button btnBack = new Button("◀ Back");
-    private final Button btnNext = new Button("Next ▶");
+    private final Button btnBackDFS = new Button("◀ Back");
+    private final Button btnNextDFS = new Button("Next ▶");
+    private final Button btnBackAStar = new Button("◀ Back");
+    private final Button btnNextAStar = new Button("Next ▶");
 
     // Botones de zoom
     private final Button btnZoomIn = new Button("🔍+");
@@ -39,7 +41,8 @@ public class ControladorPrincipal {
 
     private ResultadoBusqueda resultadoDFS;
     private ResultadoBusqueda resultadoAStar;
-    private int indiceSolucion = 0;
+    private int indiceSolucionDFS = 0;
+    private int indiceSolucionAStar = 0;
 
     public ControladorPrincipal() {
         construirUI();
@@ -63,8 +66,8 @@ public class ControladorPrincipal {
         split.setDividerPositions(0.5);
         split.getStyleClass().add("split-pane");
 
-        // Panel izquierdo (DFS)
-        VBox izquierda = crearPanelAlgoritmo("Algoritmo por Profundidad", panelArbolDFS);
+        // Panel izquierdo (Voraz)
+        VBox izquierda = crearPanelAlgoritmo("Algoritmo Voraz", panelArbolDFS);
         // Panel derecho (A*)
         VBox derecha = crearPanelAlgoritmo("Algoritmo A*", panelArbolAStar);
 
@@ -85,7 +88,7 @@ public class ControladorPrincipal {
 
         // Botones de navegación para A* (solo en el panel derecho)
         if (titulo.equals("Algoritmo A*")) {
-            HBox nav = new HBox(10, btnBack, btnNext);
+            HBox nav = new HBox(10, btnBackAStar, btnNextAStar);
             nav.setPadding(new Insets(8));
             nav.setStyle("-fx-alignment: center;");
 
@@ -100,8 +103,11 @@ public class ControladorPrincipal {
             return box;
         }
 
-        // Para DFS, solo título y scroll
-        VBox box = new VBox(8, lblTitulo, scroll);
+        // Para DFS: incluir navegación propia
+        HBox nav = new HBox(10, btnBackDFS, btnNextDFS);
+        nav.setPadding(new Insets(8));
+        nav.setStyle("-fx-alignment: center;");
+        VBox box = new VBox(8, lblTitulo, scroll, nav);
         VBox.setVgrow(scroll, Priority.ALWAYS);
         box.setPadding(new Insets(10));
         return box;
@@ -111,8 +117,10 @@ public class ControladorPrincipal {
         btnResolver.setOnAction(e -> resolverCompleto());
         btnPaso.setOnAction(e -> pasoAPaso());
         btnReiniciar.setOnAction(e -> reiniciar());
-        btnBack.setOnAction(e -> moverIndice(-1));
-        btnNext.setOnAction(e -> moverIndice(1));
+        btnBackDFS.setOnAction(e -> moverIndiceDFS(-1));
+        btnNextDFS.setOnAction(e -> moverIndiceDFS(1));
+        btnBackAStar.setOnAction(e -> moverIndiceAStar(-1));
+        btnNextAStar.setOnAction(e -> moverIndiceAStar(1));
 
         // Eventos de zoom
         btnZoomIn.setOnAction(e -> panelArbolAStar.aplicarZoom(1.2));
@@ -126,12 +134,12 @@ public class ControladorPrincipal {
         // Ejecutar ambos algoritmos en paralelo
         Thread dfsThread = new Thread(() -> {
             long inicio = System.nanoTime();
-            AlgoritmoProfundidad dfs = new AlgoritmoProfundidad();
-            resultadoDFS = dfs.resolver();
+            AlgoritmoVoraz voraz = new AlgoritmoVoraz();
+            resultadoDFS = voraz.resolver();
             long fin = System.nanoTime();
             long tiempo = fin - inicio;
-            System.out.println("DFS terminó en " + tiempo / 1_000_000.0 + " ms (" + tiempo + " ns)");
-            panelInfo.actualizarTiempoDFS(tiempo);
+            System.out.println("Voraz terminó en " + tiempo / 1_000_000.0 + " ms (" + tiempo + " ns)");
+            panelInfo.actualizarTiempoVoraz(tiempo);
         });
 
         Thread astarThread = new Thread(() -> {
@@ -164,9 +172,12 @@ public class ControladorPrincipal {
         // Expandir y mostrar TODO el árbol
         expandirTodoElArbol();
 
-        indiceSolucion = 0;
-        actualizarSeleccionActual();
-        panelInfo.actualizarResultado(resultadoAStar);
+        indiceSolucionDFS = 0;
+        indiceSolucionAStar = 0;
+        actualizarSeleccionActualDFS();
+        actualizarSeleccionActualAStar();
+        panelInfo.actualizarResultadoVoraz(resultadoDFS);
+        panelInfo.actualizarResultadoAStar(resultadoAStar);
     }
 
     private void expandirTodoElArbol() {
@@ -193,27 +204,34 @@ public class ControladorPrincipal {
         }
 
         // Reiniciar el modo paso a paso
-        indiceSolucion = 0;
+        indiceSolucionDFS = 0;
+        indiceSolucionAStar = 0;
 
-        // Mostrar solo la raíz inicialmente
+        // Mostrar solo la raíz inicialmente en ambos
+        panelArbolDFS.setDatos(resultadoDFS.getRaiz(), resultadoDFS.getCaminoSolucion());
         panelArbolAStar.setDatos(resultadoAStar.getRaiz(), resultadoAStar.getCaminoSolucion());
 
         // Actualizar la información
-        actualizarSeleccionActual();
-        panelInfo.actualizarNodoActual(resultadoAStar.getRaiz());
+        actualizarSeleccionActualDFS();
+        actualizarSeleccionActualAStar();
+        panelInfo.actualizarNodoActualVoraz(resultadoDFS.getRaiz());
+        panelInfo.actualizarNodoActualAStar(resultadoAStar.getRaiz());
     }
 
     private void reiniciar() {
         resultadoDFS = null;
         resultadoAStar = null;
-        indiceSolucion = 0;
+        indiceSolucionDFS = 0;
+        indiceSolucionAStar = 0;
         panelArbolDFS.setDatos(null, null);
         panelArbolAStar.setDatos(null, null);
-        panelInfo.actualizarNodoActual(null);
-        panelInfo.actualizarResultado(null);
+        panelInfo.actualizarNodoActualVoraz(null);
+        panelInfo.actualizarNodoActualAStar(null);
+        panelInfo.actualizarResultadoVoraz(null);
+        panelInfo.actualizarResultadoAStar(null);
     }
 
-    private void moverIndice(int delta) {
+    private void moverIndiceAStar(int delta) {
         if (resultadoAStar == null)
             return;
         List<Nodo> camino = resultadoAStar.getCaminoSolucion();
@@ -221,38 +239,69 @@ public class ControladorPrincipal {
             return;
 
         if (delta > 0) {
-            // Avanzar: mostrar el siguiente nodo y sus ramas
-            if (indiceSolucion < camino.size() - 1) {
-                indiceSolucion++;
-                Nodo actual = camino.get(indiceSolucion);
-
-                // Expandir desde el nodo actual para mostrar sus ramas
+            if (indiceSolucionAStar < camino.size() - 1) {
+                indiceSolucionAStar++;
+                Nodo actual = camino.get(indiceSolucionAStar);
                 panelArbolAStar.expandirDesde(actual);
                 panelArbolAStar.resaltarNodoActual(actual);
-                panelInfo.actualizarNodoActual(actual);
+                panelInfo.actualizarNodoActualAStar(actual);
             }
         } else {
-            // Retroceder: mostrar el nodo anterior
-            if (indiceSolucion > 0) {
-                indiceSolucion--;
-                Nodo actual = camino.get(indiceSolucion);
+            if (indiceSolucionAStar > 0) {
+                indiceSolucionAStar--;
+                Nodo actual = camino.get(indiceSolucionAStar);
                 panelArbolAStar.resaltarNodoActual(actual);
-                panelInfo.actualizarNodoActual(actual);
+                panelInfo.actualizarNodoActualAStar(actual);
             }
         }
-
-        // Actualizar estado de los botones
-        btnBack.setDisable(indiceSolucion == 0);
-        btnNext.setDisable(indiceSolucion >= camino.size() - 1);
+        btnBackAStar.setDisable(indiceSolucionAStar == 0);
+        btnNextAStar.setDisable(indiceSolucionAStar >= camino.size() - 1);
     }
 
-    private void actualizarSeleccionActual() {
+    private void moverIndiceDFS(int delta) {
+        if (resultadoDFS == null)
+            return;
+        List<Nodo> camino = resultadoDFS.getCaminoSolucion();
+        if (camino.isEmpty())
+            return;
+
+        if (delta > 0) {
+            if (indiceSolucionDFS < camino.size() - 1) {
+                indiceSolucionDFS++;
+                Nodo actual = camino.get(indiceSolucionDFS);
+                panelArbolDFS.expandirDesde(actual);
+                panelArbolDFS.resaltarNodoActual(actual);
+                panelInfo.actualizarNodoActualVoraz(actual);
+            }
+        } else {
+            if (indiceSolucionDFS > 0) {
+                indiceSolucionDFS--;
+                Nodo actual = camino.get(indiceSolucionDFS);
+                panelArbolDFS.resaltarNodoActual(actual);
+                panelInfo.actualizarNodoActualVoraz(actual);
+            }
+        }
+        btnBackDFS.setDisable(indiceSolucionDFS == 0);
+        btnNextDFS.setDisable(indiceSolucionDFS >= camino.size() - 1);
+    }
+
+    private void actualizarSeleccionActualAStar() {
         if (resultadoAStar == null || resultadoAStar.getCaminoSolucion().isEmpty())
             return;
-        Nodo actual = resultadoAStar.getCaminoSolucion().get(indiceSolucion);
+        Nodo actual = resultadoAStar.getCaminoSolucion().get(indiceSolucionAStar);
         panelArbolAStar.resaltarNodoActual(actual);
-        panelInfo.actualizarNodoActual(actual);
-        btnBack.setDisable(indiceSolucion == 0);
-        btnNext.setDisable(indiceSolucion >= resultadoAStar.getCaminoSolucion().size() - 1);
+        panelInfo.actualizarNodoActualAStar(actual);
+        btnBackAStar.setDisable(indiceSolucionAStar == 0);
+        btnNextAStar.setDisable(indiceSolucionAStar >= resultadoAStar.getCaminoSolucion().size() - 1);
+    }
+
+    private void actualizarSeleccionActualDFS() {
+        if (resultadoDFS == null || resultadoDFS.getCaminoSolucion().isEmpty())
+            return;
+        Nodo actual = resultadoDFS.getCaminoSolucion().get(indiceSolucionDFS);
+        panelArbolDFS.resaltarNodoActual(actual);
+        panelInfo.actualizarNodoActualVoraz(actual);
+        btnBackDFS.setDisable(indiceSolucionDFS == 0);
+        btnNextDFS.setDisable(indiceSolucionDFS >= resultadoDFS.getCaminoSolucion().size() - 1);
     }
 }
