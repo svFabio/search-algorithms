@@ -1,4 +1,4 @@
-package edu.ai.misioneros.algoritmo;
+package edu.ai.misioneros.algoritmoAestrella;
 
 import edu.ai.misioneros.modelo.Estado;
 import edu.ai.misioneros.modelo.Nodo;

@@ -1,6 +1,6 @@
 package edu.ai.misioneros.controlador;
 
-import edu.ai.misioneros.algoritmo.AlgoritmoAEstrella;
+import edu.ai.misioneros.algoritmoAestrella.AlgoritmoAEstrella;
 import edu.ai.misioneros.logicaVoraz.AlgoritmoVoraz;
 import edu.ai.misioneros.modelo.Nodo;
 import edu.ai.misioneros.modelo.ResultadoBusqueda;
