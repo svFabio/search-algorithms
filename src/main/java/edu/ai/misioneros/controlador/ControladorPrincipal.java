@@ -67,8 +67,10 @@ public class ControladorPrincipal {
         split.getStyleClass().add("split-pane");
 
         // Panel izquierdo (Voraz)
+        panelArbolDFS.setEsVoraz(true);
         VBox izquierda = crearPanelAlgoritmo("Algoritmo Voraz", panelArbolDFS);
         // Panel derecho (A*)
+        panelArbolAStar.setEsVoraz(false);
         VBox derecha = crearPanelAlgoritmo("Algoritmo A*", panelArbolAStar);
 
         split.getItems().addAll(izquierda, derecha);

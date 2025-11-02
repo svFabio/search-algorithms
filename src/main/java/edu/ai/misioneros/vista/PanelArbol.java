@@ -1,5 +1,6 @@
 package edu.ai.misioneros.vista;
 
+import edu.ai.misioneros.modelo.Estado;
 import edu.ai.misioneros.modelo.Nodo;
 import javafx.application.Platform;
 import javafx.scene.Group;
@@ -20,12 +21,13 @@ public class PanelArbol extends Pane {
     private static final double NODE_WIDTH = 210; // Ancho del nodo completo
     private static final double NODE_HEIGHT = 170; // Alto del nodo completo
     private static final double H_SPACING = 220; // Separación horizontal entre nodos del mismo nivel
-    private static final double V_SPACING = 180; // Separación vertical entre niveles
+    private static final double V_SPACING = 220; // Separación vertical entre niveles (aumentado de 180 a 220)
 
     private Nodo raiz;
     private List<Nodo> caminoSolucion = new ArrayList<>();
     private Nodo nodoActual;
     private Set<Nodo> nodosVisibles = new HashSet<>(); // Solo mostrar ciertos nodos
+    private boolean esVoraz = false; // Flag para identificar si es algoritmo voraz
 
     // Variables para zoom y ajuste automático
     private double escalaActual = 1.0;
@@ -33,6 +35,11 @@ public class PanelArbol extends Pane {
     private double escalaMaxima = 3.0;
     private Group contenidoArbol;
     private Scale transformacionEscala;
+    
+    // Guardar posición y zoom para mantener al navegar
+    private double layoutXGuardado = 0;
+    private double layoutYGuardado = 0;
+    private boolean zoomManual = false; // Indica si se aplicó zoom manualmente
 
     // Variables para arrastrar
     private double ultimoX = 0;
@@ -73,6 +80,7 @@ public class PanelArbol extends Pane {
 
                 ultimoX = event.getX();
                 ultimoY = event.getY();
+                guardarEstadoZoom(); // Guardar posición al arrastrar
             }
             event.consume();
         });
@@ -94,6 +102,8 @@ public class PanelArbol extends Pane {
             escalaActual = nuevaEscala;
             transformacionEscala.setX(escalaActual);
             transformacionEscala.setY(escalaActual);
+            zoomManual = true; // Marcar que se aplicó zoom manualmente
+            guardarEstadoZoom(); // Guardar el estado actual
         }
     }
 
@@ -150,9 +160,15 @@ public class PanelArbol extends Pane {
         transformacionEscala.setY(escalaActual);
         contenidoArbol.setLayoutX(0);
         contenidoArbol.setLayoutY(0);
+        layoutXGuardado = 0;
+        layoutYGuardado = 0;
+        zoomManual = false;
     }
 
     public void setDatos(Nodo raiz, List<Nodo> camino) {
+        // Guardar zoom y posición antes de cambiar datos
+        guardarEstadoZoom();
+        
         this.raiz = raiz;
         this.caminoSolucion.clear();
         if (camino != null) {
@@ -164,9 +180,35 @@ public class PanelArbol extends Pane {
             this.nodosVisibles.add(raiz);
         }
         redibujar();
+        
+        // Restaurar zoom y posición después de redibujar
+        restaurarEstadoZoom();
+    }
+    
+    public void setEsVoraz(boolean esVoraz) {
+        this.esVoraz = esVoraz;
+    }
+    
+    private void guardarEstadoZoom() {
+        if (contenidoArbol != null) {
+            layoutXGuardado = contenidoArbol.getLayoutX();
+            layoutYGuardado = contenidoArbol.getLayoutY();
+        }
+    }
+    
+    private void restaurarEstadoZoom() {
+        if (contenidoArbol != null) {
+            contenidoArbol.setLayoutX(layoutXGuardado);
+            contenidoArbol.setLayoutY(layoutYGuardado);
+            transformacionEscala.setX(escalaActual);
+            transformacionEscala.setY(escalaActual);
+        }
     }
 
     public void resaltarNodoActual(Nodo actual) {
+        // Guardar zoom y posición antes de cambiar
+        guardarEstadoZoom();
+        
         this.nodoActual = actual;
         // Mostrar el nodo actual, su padre, y TODOS sus hijos
         if (actual != null) {
@@ -180,13 +222,22 @@ public class PanelArbol extends Pane {
             }
         }
         redibujar();
+        
+        // Restaurar zoom y posición después de redibujar
+        restaurarEstadoZoom();
     }
 
     public void expandirDesde(Nodo desde) {
+        // Guardar zoom y posición antes de cambiar
+        guardarEstadoZoom();
+        
         // Expander recursivamente hasta el nodo desde
         expandirRecursivo(desde, raiz);
         this.nodoActual = desde;
         redibujar();
+        
+        // Restaurar zoom y posición después de redibujar
+        restaurarEstadoZoom();
     }
 
     private void expandirRecursivo(Nodo objetivo, Nodo actual) {
@@ -248,8 +299,11 @@ public class PanelArbol extends Pane {
         double maxY = posiciones.values().stream().mapToDouble(v -> v[1]).max().orElse(0);
         setPrefSize(Math.max(1200, maxX + NODE_WIDTH + 50), Math.max(800, maxY + NODE_HEIGHT + 50));
 
-        // Ajustar zoom automáticamente después de redibujar
-        Platform.runLater(() -> ajustarZoomAutomatico());
+        // Solo ajustar zoom automáticamente si no hay zoom aplicado manualmente
+        // (para no sobrescribir el zoom guardado)
+        if (!zoomManual) {
+            Platform.runLater(() -> ajustarZoomAutomatico());
+        }
     }
 
     private Group crearNodoVisual(Nodo n) {
@@ -293,7 +347,19 @@ public class PanelArbol extends Pane {
         lblEstado.setLayoutY(matriz.getPrefHeight() + 15);
         lblEstado.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
 
-        Label lblValores = new Label("h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh());
+        String textoValores;
+        if (esVoraz) {
+            // Para voraz: mostrar H = g + n
+            Estado estado = n.getEstado();
+            int g = estado.getMisionerosDerecha() + estado.getCanibalesDerecha();
+            int nVal = estado.getMisionerosIzquierda() + estado.getCanibalesIzquierda();
+            int h = n.getFh(); // H = g + n
+            textoValores = String.format("g=%d n=%d H=%d", g, nVal, h);
+        } else {
+            // Para A*: mostrar h, g, FH
+            textoValores = "h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh();
+        }
+        Label lblValores = new Label(textoValores);
         lblValores.setLayoutX(10);
         lblValores.setLayoutY(matriz.getPrefHeight() + 32);
         lblValores.setStyle("-fx-font-size: 10px;");

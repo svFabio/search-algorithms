@@ -7,10 +7,12 @@ import edu.ai.misioneros.modelo.ResultadoBusqueda;
 import java.util.*;
 
 /**
- * Algoritmo Voraz: FH = g + n, donde n = M + C (piezas restantes en la
- * izquierda).
- * Genera todos los hijos para visualización y explora siempre el hijo con FH
- * mínimo.
+ * Algoritmo Voraz: H = g + n, donde:
+ * - g = misioneros + canibales en el lado derecho (su lugar)
+ * - n = misioneros + canibales en el lado izquierdo (no en su lugar)
+ * Genera todos los hijos para visualización y explora siempre el hijo con H
+ * mínimo (seleccionando de izquierda a derecha en caso de empate).
+ * Solo aplica cuando misioneros >= canibales en ambos lados.
  */
 public class AlgoritmoVoraz {
 
@@ -18,15 +20,15 @@ public class AlgoritmoVoraz {
         long inicio = System.nanoTime();
 
         Estado inicial = new Estado(3, 3, 0);
-        int h0 = heuristica(inicial); // n = M + C
-        int f0 = h0; // FH = g + n, g=0
+        int h0 = heuristica(inicial); // H = g + n
+        int f0 = h0; // H = g + n, g es misioneros+canibales en derecha
         Nodo raiz = new Nodo(inicial, null, 0, h0, f0, "Inicio");
 
         List<Nodo> todos = new ArrayList<>();
         Set<Estado> visitados = new HashSet<>();
         todos.add(raiz);
 
-        Nodo objetivo = vorazMinimoFH(raiz, todos, visitados);
+        Nodo objetivo = vorazMinimoH(raiz, todos, visitados);
 
         List<Nodo> camino = reconstruir(objetivo);
         long fin = System.nanoTime();
@@ -41,12 +43,25 @@ public class AlgoritmoVoraz {
                 fin - inicio);
     }
 
-    private Nodo vorazMinimoFH(Nodo actual, List<Nodo> todos, Set<Estado> visitados) {
+    private Nodo vorazMinimoH(Nodo actual, List<Nodo> todos, Set<Estado> visitados) {
         if (!actual.getEstado().esValido())
             return null;
         if (actual.getEstado().esObjetivo())
             return actual;
-        visitados.add(actual.getEstado());
+        
+        // Solo continuar si misioneros >= canibales en ambos lados
+        Estado estadoActual = actual.getEstado();
+        int mL = estadoActual.getMisionerosIzquierda();
+        int cL = estadoActual.getCanibalesIzquierda();
+        int mR = estadoActual.getMisionerosDerecha();
+        int cR = estadoActual.getCanibalesDerecha();
+        
+        boolean valido = (mL == 0 || mL >= cL) && (mR == 0 || mR >= cR);
+        if (!valido) {
+            return null;
+        }
+        
+        visitados.add(estadoActual);
 
         List<Nodo> hijos = expandir(actual);
 
@@ -55,13 +70,33 @@ public class AlgoritmoVoraz {
             todos.add(h);
         }
 
-        hijos.sort(Comparator.comparingInt(Nodo::getFh));
-        for (Nodo h : hijos) {
-            if (!h.getEstado().esValido())
-                continue;
-            if (visitados.contains(h.getEstado()))
-                continue;
-            Nodo sol = vorazMinimoFH(h, todos, visitados);
+        // Filtrar hijos válidos (donde misioneros >= canibales en ambos lados)
+        List<Nodo> hijosValidos = new ArrayList<>();
+        Map<Nodo, Integer> indiceOriginal = new HashMap<>();
+        for (int i = 0; i < hijos.size(); i++) {
+            Nodo h = hijos.get(i);
+            Estado estadoHijo = h.getEstado();
+            int mLH = estadoHijo.getMisionerosIzquierda();
+            int cLH = estadoHijo.getCanibalesIzquierda();
+            int mRH = estadoHijo.getMisionerosDerecha();
+            int cRH = estadoHijo.getCanibalesDerecha();
+            
+            boolean validoHijo = estadoHijo.esValido() && 
+                                (mLH == 0 || mLH >= cLH) && 
+                                (mRH == 0 || mRH >= cRH);
+            if (validoHijo && !visitados.contains(estadoHijo)) {
+                hijosValidos.add(h);
+                indiceOriginal.put(h, i);
+            }
+        }
+        
+        // Ordenar por H ascendente (menor primero), manteniendo orden izquierda-derecha
+        final Map<Nodo, Integer> indiceMap = indiceOriginal;
+        hijosValidos.sort(Comparator.comparingInt(Nodo::getFh).thenComparingInt(indiceMap::get));
+        
+        // Seleccionar el primero (menor H, o si hay empate, el más a la izquierda)
+        for (Nodo h : hijosValidos) {
+            Nodo sol = vorazMinimoH(h, todos, visitados);
             if (sol != null)
                 return sol;
         }
@@ -102,15 +137,26 @@ public class AlgoritmoVoraz {
         return hijos;
     }
 
+    /**
+     * Calcula H = g + n donde:
+     * - g = misioneros + canibales en el lado derecho (su lugar)
+     * - n = misioneros + canibales en el lado izquierdo (no en su lugar)
+     */
     private int heuristica(Estado e) {
-        return e.getMisionerosIzquierda() + e.getCanibalesIzquierda();
+        // g = misioneros + canibales en el lado derecho
+        int g = e.getMisionerosDerecha() + e.getCanibalesDerecha();
+        // n = misioneros + canibales en el lado izquierdo
+        int n = e.getMisionerosIzquierda() + e.getCanibalesIzquierda();
+        // H = g + n
+        return g + n;
     }
 
     private Nodo crearNodo(Nodo padre, Estado hijoEstado, String operador) {
-        int g = padre.getNivel() + 1;
-        int h = heuristica(hijoEstado);
-        int f = g + h; // FH = g + n
-        return new Nodo(hijoEstado, padre, g, h, f, operador);
+        int nivel = padre.getNivel() + 1;
+        int h = heuristica(hijoEstado); // H = g + n
+        // Para voraz, usamos H como el valor de fh (ya que no usamos g como nivel)
+        int fh = h; // H = g + n
+        return new Nodo(hijoEstado, padre, nivel, h, fh, operador);
     }
 
     private List<Nodo> reconstruir(Nodo objetivo) {
