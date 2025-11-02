@@ -8,7 +8,7 @@ import java.util.*;
 
 /**
  * Algoritmo Voraz: FH = g + n, donde n = M + C (piezas restantes en la
- * izquierda).
+ * izquierda).j 
  * Genera todos los hijos para visualización y explora siempre el hijo con FH
  * mínimo.
  */

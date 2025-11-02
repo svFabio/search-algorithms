@@ -75,11 +75,11 @@ public class PanelInformacion extends VBox {
     }
 
     public void actualizarResultadoVoraz(ResultadoBusqueda r) {
-        areaDetallesDFS.setText(buildDetalles(r));
+        areaDetallesDFS.setText(buildDetallesVoraz(r));
     }
 
     public void actualizarResultadoAStar(ResultadoBusqueda r) {
-        areaDetallesAStar.setText(buildDetalles(r));
+        areaDetallesAStar.setText(buildDetallesAStar(r));
     }
 
     public void actualizarTiempoVoraz(long tiempo) {
@@ -94,7 +94,46 @@ public class PanelInformacion extends VBox {
                 () -> lblTimerAStar.setText("A*: " + String.format("%.2f ms (%d ns)", tiempo / 1_000_000.0, tiempo)));
     }
 
-    private String buildDetalles(ResultadoBusqueda r) {
+    private String buildDetallesVoraz(ResultadoBusqueda r) {
+        if (r == null)
+            return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append("Detalles de evaluación (H = g + n)\n");
+        if (!r.getCaminoSolucion().isEmpty()) {
+            Nodo n = r.getCaminoSolucion().get(r.getCaminoSolucion().size() - 1);
+            int M = n.getEstado().getMisionerosIzquierda();
+            int C = n.getEstado().getCanibalesIzquierda();
+            int mR = n.getEstado().getMisionerosDerecha();
+            int cR = n.getEstado().getCanibalesDerecha();
+            
+            // g = misioneros + canibales en el lado izquierdo
+            int g = M + C;
+            // n = misioneros + canibales en el lado derecho
+            int nVal = mR + cR;
+            // H = g + n
+            int H = g + nVal;
+            
+            sb.append("g = misioneros izquierda + canibales izquierda = " + M + " + " + C + " = " + g + "\n");
+            sb.append("n = misioneros derecha + canibales derecha = " + mR + " + " + cR + " = " + nVal + "\n");
+            sb.append("H = g + n = " + g + " + " + nVal + " = " + H + "\n\n");
+            
+            // Validación: solo aplicar cuando misioneros >= canibales en ambos lados
+            boolean izqOk = (M == 0) || (M >= C);
+            boolean derOk = (mR == 0) || (mR >= cR);
+            sb.append("Validación (misioneros >= canibales):\n");
+            sb.append("- Lado izquierdo: " + (izqOk ? "válido ✓" : "inválido ✗") + " (" + M + " >= " + C + ")\n");
+            sb.append("- Lado derecho: " + (derOk ? "válido ✓" : "inválido ✗") + " (" + mR + " >= " + cR + ")\n\n");
+        }
+        sb.append("Estadísticas\n");
+        sb.append("- Nodos explorados: " + r.getNodosExplorados() + "\n");
+        sb.append("- Nodos en frontera (ABIERTOS): " + r.getNodosAbiertos() + "\n");
+        sb.append("- Nodos visitados (CERRADOS): " + r.getNodosCerrados() + "\n");
+        sb.append("- Longitud de la solución: " + r.getCaminoSolucion().size() + " pasos\n");
+        sb.append("- Tiempo de ejecución: " + r.getTiempoMs() + " ms\n");
+        return sb.toString();
+    }
+    
+    private String buildDetallesAStar(ResultadoBusqueda r) {
         if (r == null)
             return "";
         StringBuilder sb = new StringBuilder();
