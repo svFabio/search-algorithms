@@ -13,4 +13,8 @@ Desarrollado con **Maven** y **Java 11-22**.
    ```bash
    mvn clean
    mvn javafx:run
-   
+
+   .jar
+   mvn clean package
+
+el .jar se crea en /target/misioneros-canibales-astar-1.0.0.jar
