@@ -35,16 +35,16 @@ public class PanelArbol extends Pane {
     private double escalaMaxima = 3.0;
     private Group contenidoArbol;
     private Scale transformacionEscala;
-    
-    // Guardar posición y zoom para mantener al navegar
-    private double layoutXGuardado = 0;
-    private double layoutYGuardado = 0;
-    private boolean zoomManual = false; // Indica si se aplicó zoom manualmente
 
     // Variables para arrastrar
     private double ultimoX = 0;
     private double ultimoY = 0;
     private boolean arrastrando = false;
+    
+    // Variables para guardar estado de zoom y posición
+    private boolean zoomManual = false;
+    private double layoutXGuardado = 0;
+    private double layoutYGuardado = 0;
 
     public PanelArbol() {
         setStyle("-fx-background-color: white;");
@@ -59,6 +59,8 @@ public class PanelArbol extends Pane {
         setOnScroll(event -> {
             double factorZoom = event.getDeltaY() > 0 ? 1.1 : 0.9;
             aplicarZoom(factorZoom);
+            // Marcar interacción manual para no sobrescribir el zoom automáticamente
+            zoomManual = true;
             event.consume();
         });
 
@@ -80,7 +82,6 @@ public class PanelArbol extends Pane {
 
                 ultimoX = event.getX();
                 ultimoY = event.getY();
-                guardarEstadoZoom(); // Guardar posición al arrastrar
             }
             event.consume();
         });
@@ -111,6 +112,9 @@ public class PanelArbol extends Pane {
      * Ajusta automáticamente el zoom para que todo el árbol sea visible
      */
     public void ajustarZoomAutomatico() {
+        // Si el usuario ya interactuó manualmente (zoom/pan), no forzar ajuste automático
+        if (zoomManual) return;
+
         if (raiz == null || nodosVisibles.isEmpty())
             return;
 
@@ -156,6 +160,7 @@ public class PanelArbol extends Pane {
      */
     public void resetearZoom() {
         escalaActual = 1.0;
+        zoomManual = false;
         transformacionEscala.setX(escalaActual);
         transformacionEscala.setY(escalaActual);
         contenidoArbol.setLayoutX(0);
@@ -347,19 +352,7 @@ public class PanelArbol extends Pane {
         lblEstado.setLayoutY(matriz.getPrefHeight() + 15);
         lblEstado.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
 
-        String textoValores;
-        if (esVoraz) {
-            // Para voraz: mostrar H = g + n
-            Estado estado = n.getEstado();
-            int g = estado.getMisionerosDerecha() + estado.getCanibalesDerecha();
-            int nVal = estado.getMisionerosIzquierda() + estado.getCanibalesIzquierda();
-            int h = n.getFh(); // H = g + n
-            textoValores = String.format("g=%d n=%d H=%d", g, nVal, h);
-        } else {
-            // Para A*: mostrar h, g, FH
-            textoValores = "h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh();
-        }
-        Label lblValores = new Label(textoValores);
+        Label lblValores = new Label("h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh());
         lblValores.setLayoutX(10);
         lblValores.setLayoutY(matriz.getPrefHeight() + 32);
         lblValores.setStyle("-fx-font-size: 10px;");
