@@ -352,7 +352,20 @@ public class PanelArbol extends Pane {
         lblEstado.setLayoutY(matriz.getPrefHeight() + 15);
         lblEstado.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
 
-        Label lblValores = new Label("h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh());
+        // Mostrar valores según el tipo de algoritmo
+        String textoValores;
+        if (esVoraz) {
+            // Para voraz: mostrar g, n, H (donde H = FH = g + n)
+            int g = n.getGreedyG();
+            int nVal = n.getGreedyN();
+            int H = n.getH(); // o n.getFh() ya que H = FH en voraz
+            textoValores = "g=" + g + " n=" + nVal + " H=" + H;
+        } else {
+            // Para A*: mostrar h, g (nivel), FH
+            textoValores = "h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh();
+        }
+        
+        Label lblValores = new Label(textoValores);
         lblValores.setLayoutX(10);
         lblValores.setLayoutY(matriz.getPrefHeight() + 32);
         lblValores.setStyle("-fx-font-size: 10px;");

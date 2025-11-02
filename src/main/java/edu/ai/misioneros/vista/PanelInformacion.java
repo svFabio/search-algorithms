@@ -106,15 +106,15 @@ public class PanelInformacion extends VBox {
             int mR = n.getEstado().getMisionerosDerecha();
             int cR = n.getEstado().getCanibalesDerecha();
             
-            // g = misioneros + canibales en el lado derecho (su lugar)
-            int g = mR + cR;
-            // n = misioneros + canibales en el lado izquierdo (no en su lugar)
-            int nVal = M + C;
+            // g = misioneros + canibales en el lado izquierdo
+            int g = M + C;
+            // n = misioneros + canibales en el lado derecho
+            int nVal = mR + cR;
             // H = g + n
             int H = g + nVal;
             
-            sb.append("g = misioneros derecha + canibales derecha = " + mR + " + " + cR + " = " + g + "\n");
-            sb.append("n = misioneros izquierda + canibales izquierda = " + M + " + " + C + " = " + nVal + "\n");
+            sb.append("g = misioneros izquierda + canibales izquierda = " + M + " + " + C + " = " + g + "\n");
+            sb.append("n = misioneros derecha + canibales derecha = " + mR + " + " + cR + " = " + nVal + "\n");
             sb.append("H = g + n = " + g + " + " + nVal + " = " + H + "\n\n");
             
             // Validación: solo aplicar cuando misioneros >= canibales en ambos lados

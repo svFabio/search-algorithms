@@ -8,8 +8,8 @@ import java.util.*;
 
 /**
  * Algoritmo Voraz: H = g + n, donde:
- * - g = misioneros + canibales en el lado derecho (su lugar)
- * - n = misioneros + canibales en el lado izquierdo (no en su lugar)
+ * - g = misioneros + canibales en el lado izquierdo
+ * - n = misioneros + canibales en el lado derecho
  * Genera todos los hijos para visualización y explora siempre el hijo con H
  * mínimo (seleccionando de izquierda a derecha en caso de empate).
  * Solo aplica cuando misioneros >= canibales en ambos lados.
@@ -21,7 +21,7 @@ public class AlgoritmoVoraz {
 
         Estado inicial = new Estado(3, 3, 0);
         int h0 = heuristica(inicial); // H = g + n
-        int f0 = h0; // H = g + n, g es misioneros+canibales en derecha
+        int f0 = h0; // H = g + n, donde g = izquierda, n = derecha
         Nodo raiz = new Nodo(inicial, null, 0, h0, f0, "Inicio");
 
         List<Nodo> todos = new ArrayList<>();
@@ -139,14 +139,14 @@ public class AlgoritmoVoraz {
 
     /**
      * Calcula H = g + n donde:
-     * - g = misioneros + canibales en el lado derecho (su lugar)
-     * - n = misioneros + canibales en el lado izquierdo (no en su lugar)
+     * - g = misioneros + canibales en el lado izquierdo
+     * - n = misioneros + canibales en el lado derecho
      */
     private int heuristica(Estado e) {
-        // g = misioneros + canibales en el lado derecho
-        int g = e.getMisionerosDerecha() + e.getCanibalesDerecha();
-        // n = misioneros + canibales en el lado izquierdo
-        int n = e.getMisionerosIzquierda() + e.getCanibalesIzquierda();
+        // g = misioneros + canibales en el lado izquierdo
+        int g = e.getMisionerosIzquierda() + e.getCanibalesIzquierda();
+        // n = misioneros + canibales en el lado derecho
+        int n = e.getMisionerosDerecha() + e.getCanibalesDerecha();
         // H = g + n
         return g + n;
     }
@@ -154,8 +154,8 @@ public class AlgoritmoVoraz {
     private Nodo crearNodo(Nodo padre, Estado hijoEstado, String operador) {
         int nivel = padre.getNivel() + 1;
         int h = heuristica(hijoEstado); // H = g + n
-        // Para voraz, usamos H como el valor de fh (ya que no usamos g como nivel)
-        int fh = h; // H = g + n
+        // Para voraz, FH = H (usamos H como el valor de fh)
+        int fh = h; // FH = H = g + n
         return new Nodo(hijoEstado, padre, nivel, h, fh, operador);
     }
 
