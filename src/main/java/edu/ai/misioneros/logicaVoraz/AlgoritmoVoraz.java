@@ -18,15 +18,15 @@ public class AlgoritmoVoraz {
         long inicio = System.nanoTime();
 
         Estado inicial = new Estado(3, 3, 0);
-        int h0 = heuristica(inicial); // n = M + C
-        int f0 = h0; // FH = g + n, g=0
-        Nodo raiz = new Nodo(inicial, null, 0, h0, f0, "Inicio");
+    int h0 = heuristica(inicial); // heuristica simple (M + C)
+    // Creamos la raiz; fh se usa por otros algoritmos, aquí la heuristica voraz se calcula con getGreedyH()
+    Nodo raiz = new Nodo(inicial, null, 0, h0, h0, "Inicio");
 
         List<Nodo> todos = new ArrayList<>();
         Set<Estado> visitados = new HashSet<>();
         todos.add(raiz);
 
-        Nodo objetivo = vorazMinimoFH(raiz, todos, visitados);
+    Nodo objetivo = vorazMinimoH(raiz, todos, visitados);
 
         List<Nodo> camino = reconstruir(objetivo);
         long fin = System.nanoTime();
@@ -41,7 +41,7 @@ public class AlgoritmoVoraz {
                 fin - inicio);
     }
 
-    private Nodo vorazMinimoFH(Nodo actual, List<Nodo> todos, Set<Estado> visitados) {
+    private Nodo vorazMinimoH(Nodo actual, List<Nodo> todos, Set<Estado> visitados) {
         if (!actual.getEstado().esValido())
             return null;
         if (actual.getEstado().esObjetivo())
@@ -54,16 +54,29 @@ public class AlgoritmoVoraz {
             actual.agregarHijo(h);
             todos.add(h);
         }
-
-        hijos.sort(Comparator.comparingInt(Nodo::getFh));
+        // Calcular H voraz para cada hijo y seleccionar el H mínimo
+        int minH = Integer.MAX_VALUE;
         for (Nodo h : hijos) {
-            if (!h.getEstado().esValido())
-                continue;
-            if (visitados.contains(h.getEstado()))
-                continue;
-            Nodo sol = vorazMinimoFH(h, todos, visitados);
-            if (sol != null)
-                return sol;
+            int hv = h.getGreedyH();
+            if (hv < minH) minH = hv;
+        }
+
+        // Intentar primero los hijos con H == minH, respetando el orden de generación (izq->der)
+        for (Nodo h : hijos) {
+            if (!h.getEstado().esValido()) continue;
+            if (visitados.contains(h.getEstado())) continue;
+            if (h.getGreedyH() != minH) continue;
+            Nodo sol = vorazMinimoH(h, todos, visitados);
+            if (sol != null) return sol;
+        }
+
+        // Si ninguno de los hijos de H mínimo llevó a solución, intentar el resto en orden
+        for (Nodo h : hijos) {
+            if (!h.getEstado().esValido()) continue;
+            if (visitados.contains(h.getEstado())) continue;
+            if (h.getGreedyH() == minH) continue; // ya intentados
+            Nodo sol = vorazMinimoH(h, todos, visitados);
+            if (sol != null) return sol;
         }
         return null;
     }
@@ -109,7 +122,7 @@ public class AlgoritmoVoraz {
     private Nodo crearNodo(Nodo padre, Estado hijoEstado, String operador) {
         int g = padre.getNivel() + 1;
         int h = heuristica(hijoEstado);
-        int f = g + h; // FH = g + n
+        int f = g + h; // valor usado por A* u otros; la heurística voraz se calcula en Nodo.getGreedyH()
         return new Nodo(hijoEstado, padre, g, h, f, operador);
     }
 

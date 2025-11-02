@@ -33,6 +33,8 @@ public class PanelArbol extends Pane {
     private double escalaMaxima = 3.0;
     private Group contenidoArbol;
     private Scale transformacionEscala;
+    // Flag para indicar que el usuario hizo zoom o pan manual y evitar reajustes automáticos
+    private boolean zoomManual = false;
 
     // Variables para arrastrar
     private double ultimoX = 0;
@@ -52,6 +54,8 @@ public class PanelArbol extends Pane {
         setOnScroll(event -> {
             double factorZoom = event.getDeltaY() > 0 ? 1.1 : 0.9;
             aplicarZoom(factorZoom);
+            // Marcar interacción manual para no sobrescribir el zoom automáticamente
+            zoomManual = true;
             event.consume();
         });
 
@@ -73,6 +77,8 @@ public class PanelArbol extends Pane {
 
                 ultimoX = event.getX();
                 ultimoY = event.getY();
+                // Usuario hizo pan: considerar zoom/pan como manual
+                zoomManual = true;
             }
             event.consume();
         });
@@ -101,6 +107,9 @@ public class PanelArbol extends Pane {
      * Ajusta automáticamente el zoom para que todo el árbol sea visible
      */
     public void ajustarZoomAutomatico() {
+        // Si el usuario ya interactuó manualmente (zoom/pan), no forzar ajuste automático
+        if (zoomManual) return;
+
         if (raiz == null || nodosVisibles.isEmpty())
             return;
 
@@ -146,6 +155,7 @@ public class PanelArbol extends Pane {
      */
     public void resetearZoom() {
         escalaActual = 1.0;
+        zoomManual = false;
         transformacionEscala.setX(escalaActual);
         transformacionEscala.setY(escalaActual);
         contenidoArbol.setLayoutX(0);
@@ -293,7 +303,7 @@ public class PanelArbol extends Pane {
         lblEstado.setLayoutY(matriz.getPrefHeight() + 15);
         lblEstado.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
 
-        Label lblValores = new Label("h=" + n.getH() + " g=" + n.getNivel() + " FH=" + n.getFh());
+    Label lblValores = new Label("g=" + n.getGreedyG() + " n=" + n.getGreedyN() + " H=" + n.getGreedyH() + "  (nivel=" + n.getNivel() + ")");
         lblValores.setLayoutX(10);
         lblValores.setLayoutY(matriz.getPrefHeight() + 32);
         lblValores.setStyle("-fx-font-size: 10px;");
