@@ -29,6 +29,32 @@ public class Nodo {
     public int getNivel() { return nivel; }
     public int getH() { return h; }
     public int getFh() { return fh; }
+    /**
+     * g voraz: número de misioneros + caníbales en el lado derecho
+     */
+    public int getGreedyG() {
+        int mL = estado.getMisionerosIzquierda();
+        int cL = estado.getCanibalesIzquierda();
+        int mR = 3 - mL;
+        int cR = 3 - cL;
+        return mR + cR;
+    }
+
+    /**
+     * n voraz: número de misioneros + caníbales que no están en su lugar (a la izquierda)
+     */
+    public int getGreedyN() {
+        int mL = estado.getMisionerosIzquierda();
+        int cL = estado.getCanibalesIzquierda();
+        return mL + cL;
+    }
+
+    /**
+     * H voraz = g + n según tu especificación
+     */
+    public int getGreedyH() {
+        return getGreedyG() + getGreedyN();
+    }
     public String getOperador() { return operador; }
     public List<Nodo> getHijos() { return hijos; }
 
